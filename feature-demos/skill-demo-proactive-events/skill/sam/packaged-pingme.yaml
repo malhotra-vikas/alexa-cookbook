@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Alexa Sample Skill
+Metadata:
+  Name: alexa-ping-me
+Outputs:
+  AlexaSkillFunctionARN:
+    Description: Paste this ARN into your Skill Endpoint!
+    Value:
+      Fn::GetAtt:
+      - askLambdaFunction
+      - Arn
+  DynamoDbTable:
+    Value:
+      Fn::Sub: ask${ProjectName}
+Parameters:
+  ProjectName:
+    Default: PingMe
+    Type: String
+Resources:
+  DatabaseTable:
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      TableName:
+        Fn::Sub: ask${ProjectName}
+    Type: AWS::Serverless::SimpleTable
+  askLambdaFunction:
+    Properties:
+      CodeUri: s3://ask-samples-resources/code-packages/0c0e791d1e718cecc4be8716df6dcdf8
+      Description: Alexa Skill Lambda function
+      Environment:
+        Variables:
+          DYNAMODB_TABLE:
+            Fn::Sub: ask${ProjectName}
+      Events:
+        AlexaTrigger:
+          Type: AlexaSkill
+      FunctionName:
+        Fn::Sub: ask-custom-${ProjectName}
+      Handler: index.handler
+      MemorySize: 128
+      Policies:
+      - Statement:
+        - Action:
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+          - dynamodb:UpdateItem
+          - dynamodb:DeleteItem
+          - dynamodb:CreateTable
+          Effect: Allow
+          Resource:
+          - Fn::Sub: arn:aws:dynamodb:*:*:table/ask${ProjectName}
+        Version: '2012-10-17'
+      Runtime: nodejs8.10
+      Timeout: 7
+    Type: AWS::Serverless::Function
+Transform: AWS::Serverless-2016-10-31

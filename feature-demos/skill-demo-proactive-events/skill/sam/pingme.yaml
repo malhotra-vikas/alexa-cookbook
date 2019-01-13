@@ -1,0 +1,81 @@
+# https://github.com/awslabs/serverless-application-model/releases/tag/1.4.0
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Alexa Sample Skill
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  ProjectName:
+    Type: String
+    Default: 'PingMe'
+Metadata:
+  Name: alexa-ping-me
+Resources:
+  askLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'ask-custom-${ProjectName}'
+      CodeUri: ../lambda/index.zip
+      Description: Alexa Skill Lambda function
+      Handler: index.handler
+      MemorySize: 128
+      Runtime: nodejs8.10
+      Timeout: 7
+      Events:
+        AlexaTrigger:
+          Type: AlexaSkill
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Sub 'ask${ProjectName}'
+      Policies:
+        -
+          Version: "2012-10-17"
+          Statement:
+            -
+              Effect: "Allow"
+              Action:
+                - "dynamodb:GetItem"
+                - "dynamodb:PutItem"
+                - "dynamodb:UpdateItem"
+                - "dynamodb:DeleteItem"
+                - "dynamodb:CreateTable"
+              Resource:
+                - !Sub 'arn:aws:dynamodb:*:*:table/ask${ProjectName}'
+
+  DatabaseTable:
+     Type: AWS::Serverless::SimpleTable
+     Properties:
+       TableName: !Sub 'ask${ProjectName}'
+       PrimaryKey:
+         Name: id
+         Type: String
+       ProvisionedThroughput:
+         ReadCapacityUnits: 5
+         WriteCapacityUnits: 5
+
+Outputs:
+  AlexaSkillFunctionARN:
+    Value: !GetAtt askLambdaFunction.Arn
+    Description: 'Paste this ARN into your Skill Endpoint!'
+  DynamoDbTable:
+    Value: !Sub 'ask${ProjectName}'
+
+#    Export:
+#      Name: 'Export Text'
+
+#   DynamoDBTable:
+#     Type: AWS::DynamoDB::Table
+#     Properties:
+#       AttributeDefinitions:
+#         - AttributeName: id
+#           AttributeType: S
+#       KeySchema:
+#         - AttributeName: id
+#           KeyType: HASH
+#       ProvisionedThroughput:
+#         ReadCapacityUnits: 5
+#         WriteCapacityUnits: 5
+#       StreamSpecification:
+#         StreamViewType: streamview type
+
+#    Export:
+#      Name: !Sub "${AWS::StackName}-Role"
